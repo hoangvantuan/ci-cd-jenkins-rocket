@@ -1,0 +1,320 @@
+version: "3.4"
+services:
+  #===== 共通 =====
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3
+      DATA_DIR: /tmp/localstack/data
+    volumes:
+      - "../../../sharevolume/localstack:/tmp/localstack"
+  redis:
+    image: redis:7.0-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - 6379:6379
+  #===== 認証 =====
+  # 認証アプリ
+  auth.nginx:
+    build:
+      context: ../../../SPT_Auth/src/Rvsta.Auth
+      dockerfile: Rvsta.Auth.Web/Dockerfile
+      args:
+        CODEARTIFACT_NUGET_INDEX_URL: https://spt-packages-773022025046.d.codeartifact.ap-northeast-1.amazonaws.com/nuget/spt-repo/v3/index.json
+        CODEARTIFACT_AUTH_TOKEN: $CODEARTIFACT_AUTH_TOKEN
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:8080
+      - ConnectionStrings__auth_rds_master=Server=auth-db;Port=3306;Uid=root;Pwd=P@ssw0rd;Database=idpdb;TreatTinyAsBoolean=false
+      - ConnectionStrings__auth_rds_readonly=Server=auth-db;Port=3306;Uid=root;Pwd=P@ssw0rd;Database=idpdb;TreatTinyAsBoolean=false
+      - AuthApi__Authority=http://auth.nginx:8080
+      - AuthServer__LicenseKey
+      - AuthServer__BaseUri=http://auth.nginx:8080
+      # Webブラウザーから呼び出されるときに許可するオリジン
+      - CorsPolicy__AllowOrigins__0=http://auth.nginx:8080
+      - CorsPolicy__AllowOrigins__1=http://localhost:5000
+      - CorsPolicy__AllowOrigins__2=http://localhost:5100
+      - CorsPolicy__AllowOrigins__3=http://localhost:5101
+      - CorsPolicy__AllowOrigins__4=http://localhost:5102
+      - CorsPolicy__AllowOrigins__5=http://localhost:5106
+      - CorsPolicy__AllowOrigins__6=http://localhost:5107
+      - CorsPolicy__AllowOrigins__7=http://localhost:5201
+      - CorsPolicy__AllowOrigins__8=http://localhost:5202
+      - CorsPolicy__AllowOrigins__9=http://localhost:5206
+      - CorsPolicy__AllowOrigins__10=http://localhost:5207
+      - CorsPolicy__AllowOrigins__11=http://localhost:5300
+      - CorsPolicy__AllowOrigins__12=http://localhost:4999
+      - CorsPolicy__AllowOrigins__13=http://localhost:3000
+      - AuthServer__Clients__rvsta_front__RedirectUris__0=http://auth.nginx:8080/sigin-oidc
+      - AuthServer__Clients__rvsta_front__RedirectUris__1=http://auth.nginx:8080/swagger/oauth2-redirect.html
+      - AuthServer__Clients__rvsta_front__RedirectUris__2=http://localhost:5000/sigin-oidc
+      - AuthServer__Clients__rvsta_front__RedirectUris__3=http://localhost:5000/swagger/oauth2-redirect.html
+      - AuthServer__Clients__rvsta_front__RedirectUris__4=http://localhost:5100/sigin-oidc
+      - AuthServer__Clients__rvsta_front__RedirectUris__5=http://localhost:5100/swagger/oauth2-redirect.html
+      - AuthServer__Clients__rvsta_front__RedirectUris__6=http://localhost:5101/sigin-oidc
+      - AuthServer__Clients__rvsta_front__RedirectUris__7=http://localhost:5101/swagger/oauth2-redirect.html
+      - AuthServer__Clients__rvsta_front__RedirectUris__8=http://localhost:5102/sigin-oidc
+      - AuthServer__Clients__rvsta_front__RedirectUris__9=http://localhost:5102/swagger/oauth2-redirect.html
+      - AuthServer__Clients__rvsta_front__RedirectUris__10=http://localhost:5106/sigin-oidc
+      - AuthServer__Clients__rvsta_front__RedirectUris__11=http://localhost:5106/swagger/oauth2-redirect.html
+      - AuthServer__Clients__rvsta_front__RedirectUris__12=http://localhost:5107/sigin-oidc
+      - AuthServer__Clients__rvsta_front__RedirectUris__13=http://localhost:5107/swagger/oauth2-redirect.html
+      - AuthServer__Clients__rvsta_front__RedirectUris__14=http://localhost:5300/authentication/callback
+      - AuthServer__Clients__rvsta_front__RedirectUris__15=http://localhost:4999/sigin-oidc
+      - AuthServer__Clients__rvsta_front__RedirectUris__16=http://localhost:4999/swagger/oauth2-redirect.html
+      - AuthServer__Clients__rvsta_front__RedirectUris__17=http://localhost:3000/
+      - AuthServer__Clients__rvsta_front__PostLogoutRedirectUris__0=http://auth.nginx:8080/
+      - AuthServer__Clients__rvsta_front__PostLogoutRedirectUris__1=http://localhost:5000/
+      - AuthServer__Clients__rvsta_front__PostLogoutRedirectUris__3=http://localhost:5100/
+      - AuthServer__Clients__rvsta_front__PostLogoutRedirectUris__4=http://localhost:5101/
+      - AuthServer__Clients__rvsta_front__PostLogoutRedirectUris__5=http://localhost:5102/
+      - AuthServer__Clients__rvsta_front__PostLogoutRedirectUris__6=http://localhost:5106/
+      - AuthServer__Clients__rvsta_front__PostLogoutRedirectUris__7=http://localhost:5107/
+      - AuthServer__Clients__rvsta_front__PostLogoutRedirectUris__8=http://localhost:5300/
+      - AuthServer__Clients__rvsta_front__PostLogoutRedirectUris__9=http://localhost:4999/
+      - AuthServer__Clients__rvsta_front__PostLogoutRedirectUris__10=http://localhost:3000/
+      - AuthServer__Clients__rvsta_front__AllowedCorsOrigins__0=http://auth.nginx:8080
+      - AuthServer__Clients__rvsta_front__AllowedCorsOrigins__1=http://localhost:5100
+      - AuthServer__Clients__rvsta_front__AllowedCorsOrigins__2=http://localhost:5100
+      - AuthServer__Clients__rvsta_front__AllowedCorsOrigins__2=http://localhost:5101
+      - AuthServer__Clients__rvsta_front__AllowedCorsOrigins__3=http://localhost:5102
+      - AuthServer__Clients__rvsta_front__AllowedCorsOrigins__4=http://localhost:5106
+      - AuthServer__Clients__rvsta_front__AllowedCorsOrigins__5=http://localhost:5107
+      - AuthServer__Clients__rvsta_front__AllowedCorsOrigins__6=http://localhost:5300
+      - AuthServer__Clients__rvsta_front__AllowedCorsOrigins__7=http://localhost:4999
+      - AuthServer__Clients__rvsta_front__AllowedCorsOrigins__8=http://localhost:3000
+      - AuthServer__Clients__rvsta_front__ClientSecrets__0=spa_secrets
+      - AuthServer__Clients__rvsta_authapi__ClientSecrets__0=idp_secrets
+      - AuthServer__Clients__internal_api__ClientSecrets__0=internal_api_secrets
+      - AuthServer__Clients__internal_api__CustomClaims__0__Type=sub
+      - AuthServer__Clients__internal_api__CustomClaims__0__Value=testuser
+      - Swagger__Use=true
+      - Swagger__Document__PathBase=
+      - Swagger__Document__Host=http://auth.nginx:8080
+      - Serilog__MinimumLevel__Default=Debug
+      - Serilog__MinimumLevel__Microsoft=Information
+      - Serilog__MinimumLevel__System=Information
+      - Serilog__WriteTo__0__Args__formatter
+      - UseRuntimeDbMigration=1
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-db
+      - localstack
+      - redis
+    networks:
+      - default
+      - shared-network
+    extra_hosts:
+      - auth.nginx:127.0.0.1
+  # 認証データベース
+  auth-db:
+    image: mysql:8.0
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --default-time-zone=Asia/Tokyo
+    environment:
+      - MYSQL_DATABASE=baseappdb
+      - MYSQL_ROOT_PASSWORD=P@ssw0rd
+    volumes:
+      - auth-db-vol:/var/lib/mysql
+      - /dockervol/database:/docker-entrypoint-initdb.d
+    ports:
+      - 3306:3306
+  #===== Biz07Backend =====
+  #リバースプロキシ
+  biz07-rs:
+    profiles:
+      - all
+      - biz07
+    build:
+      context: ../../rproxy/.
+      dockerfile: Dockerfile
+    environment:
+      - BACKEND_HOST=biz07-backend-app
+      - BACKEND_PORT=5107
+    ports:
+      - 5107:8080
+    depends_on:
+      - biz07-backend-app
+    logging:
+      driver: "none"
+    networks:
+      - default
+      - shared-network
+  #===== KernelBackend =====
+  #リバースプロキシ
+  kernel-rs:
+    build:
+      context: ../../rproxy/.
+      dockerfile: Dockerfile
+    environment:
+      - BACKEND_HOST=kernel-backend-app
+      - BACKEND_PORT=5100
+    ports:
+      - 5100:8080
+    depends_on:
+      - kernel-backend-app
+    logging:
+      driver: "none"
+    networks:
+      - default
+      - shared-network
+  # アプリ
+  kernel-backend-app:
+    build:
+      context: ../../../SPT_Kernel_Backend/src/Rvsta.SptApps.Kernel
+      dockerfile: ./Rvsta.SptApps.Kernel.Api/Dockerfile
+      args:
+        CODEARTIFACT_NUGET_INDEX_URL: https://spt-packages-773022025046.d.codeartifact.ap-northeast-1.amazonaws.com/nuget/spt-repo/v3/index.json
+        CODEARTIFACT_AUTH_TOKEN: $CODEARTIFACT_AUTH_TOKEN
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:5100
+      - ConnectionStrings__app_base_rds_master=Server=kernel-db;Port=3306;Uid=root;Pwd=P@ssw0rd;Database=baseappdb;TreatTinyAsBoolean=false;Allow User Variables=true
+      - ConnectionStrings__app_base_rds_ro=Server=kernel-db;Port=3306;Uid=root;Pwd=P@ssw0rd;Database=baseappdb;TreatTinyAsBoolean=false
+      - ConnectionStrings__redis=redis:6379
+      - AuthServer__BaseUri=http://auth.nginx:8080 # using shared-network
+      - AuthServer__ClientId=rvsta.front
+      - AuthServer__ClientSecrets=spa_secrets
+      - Swagger__Use=true
+      - Swagger__Document__PathBase=
+      - Swagger__Document__Host=localhost:5100
+      - Serilog__MinimumLevel__Default=Debug
+      - Serilog__MinimumLevel__Microsoft=Information
+      - Serilog__MinimumLevel__System=Information
+      - Serilog__WriteTo__0__Args__formatter
+      - UseRuntimeDbMigration=1
+      - ApiClients__KernelApi__BaseAddress=http://localhost:5100
+      - AWS__Region=ap-northeast-1
+      - AWS__ServiceURL=http://localstack:4566
+      - AWS__UseHttp=true
+      - CloudStorageConfig__UseLocalStack=true
+      - CorsPolicyConfig__AllowOrigins__0=http://localhost:5300
+      - CorsPolicyConfig__AllowOrigins__1=http://localhost:5100
+      - CorsPolicyConfig__AllowOrigins__2=http://localhost:5101
+      - CorsPolicyConfig__AllowOrigins__3=http://localhost:5102
+      - CorsPolicyConfig__AllowOrigins__4=http://localhost:5106
+      - CorsPolicyConfig__AllowOrigins__5=http://localhost:5107
+    depends_on:
+      - auth.nginx
+      - kernel-db
+      - localstack
+      - redis
+    networks:
+      - default
+      - shared-network
+  kernel-db:
+    image: mysql:8.0
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --default-time-zone=Asia/Tokyo
+    environment:
+      - MYSQL_DATABASE=baseappdb
+      - MYSQL_ROOT_PASSWORD=P@ssw0rd
+    volumes:
+      - kernel-db-vol:/var/lib/mysql
+      - /dockervol/database:/docker-entrypoint-initdb.d
+    ports:
+      - 3307:3306
+  kernel-mongo-db:
+    image: mongo:5.0-focal
+    environment:
+      MONGO_INITDB_DATABASE: kernel_doc
+      MONGO_INITDB_ROOT_USERNAME: kernel
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - "27010:27017"
+    volumes:
+      - kernel-mongodb-vol:/data/db
+  # アプリ
+  biz07-backend-app:
+    profiles:
+      - all
+      - biz07
+    build:
+      context: ../../../SPT_Biz07_Backend/src/Rvsta.SptApps.Biz07
+      dockerfile: ./Rvsta.SptApps.Biz07.Api/Dockerfile
+      args:
+        CODEARTIFACT_NUGET_INDEX_URL: https://spt-packages-773022025046.d.codeartifact.ap-northeast-1.amazonaws.com/nuget/spt-repo/v3/index.json
+        CODEARTIFACT_AUTH_TOKEN: $CODEARTIFACT_AUTH_TOKEN
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:5107
+      - ConnectionStrings__app_Biz07_rds_master=Server=biz07-db;Port=3306;Uid=root;Pwd=P@ssw0rd;Database=bizapp07;TreatTinyAsBoolean=false;Allow User Variables=true
+      - ConnectionStrings__app_Biz07_rds_ro=Server=biz07-db;Port=3306;Uid=root;Pwd=P@ssw0rd;Database=bizapp07;TreatTinyAsBoolean=false
+      - ConnectionStrings__documentDb=mongodb://biz07:password@biz07-mongo-db:27017?authSource=admin&retryWrites=true
+      - ConnectionStrings__redis=redis:6379
+      - AuthServer__BaseUri=http://auth.nginx:8080 # using shared-network
+      - AuthServer__ClientId=rvsta.front
+      - AuthServer__ClientSecrets=spa_secrets
+      - Swagger__Use=true
+      - Swagger__Document__PathBase=
+      - Swagger__Document__Host=localhost:5107
+      - Serilog__MinimumLevel__Default=Debug
+      - Serilog__MinimumLevel__Microsoft=Information
+      - Serilog__MinimumLevel__System=Information
+      - Serilog__WriteTo__0__Args__formatter
+      - UseRuntimeDbMigration=1
+      - ApiClients__KernelApi__BaseAddress=http://kernel-rs:8080
+      - ApiClients__Biz07Api__BaseAddress=http://localhost:5107
+      - AWS__Region=ap-northeast-1
+      - AWS__ServiceURL=http://localstack:4566
+      - AWS__UseHttp=true
+      - CorsPolicyConfig__AllowOrigins__0=http://localhost:5107
+      - CorsPolicyConfig__AllowOrigins__1=http://localhost:5200
+      - CorsPolicyConfig__AllowOrigins__2=http://localhost:5207
+      - CorsPolicyConfig__AllowOrigins__3=http://localhost:5300
+    depends_on:
+      - biz07-db
+      - localstack
+      - redis
+    networks:
+      - default
+      - shared-network
+  biz07-db:
+    profiles:
+      - all
+      - biz07
+    image: mysql:8.0
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --default-time-zone=Asia/Tokyo
+    environment:
+      - MYSQL_DATABASE=bizapp07
+      - MYSQL_ROOT_PASSWORD=P@ssw0rd
+    volumes:
+      - biz07-db-vol:/var/lib/mysql
+      - /dockervol/database:/docker-entrypoint-initdb.d
+    ports:
+      - 3311:3306
+  biz07-mongo-db:
+    profiles:
+      - all
+      - biz07
+    image: mongo:5.0-focal
+    environment:
+      MONGO_INITDB_DATABASE: biz07_doc
+      MONGO_INITDB_ROOT_USERNAME: biz07
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - "27017:27017"
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "dbrs" ]
+    volumes:
+      - biz07-mongodb-vol:/data/db
+volumes:
+  auth-db-vol:
+    driver: local
+  kernel-db-vol:
+    driver: local
+  biz01-db-vol:
+    driver: local
+  biz02-db-vol:
+    driver: local
+  biz06-db-vol:
+    driver: local
+  biz07-db-vol:
+    driver: local
+  kernel-mongodb-vol:
+    driver: local
+  biz07-mongodb-vol:
+    driver: local
+networks:
+  shared-network:
+    external: true
